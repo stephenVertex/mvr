@@ -29,7 +29,7 @@ DIRECTORIES = {
     "docs": Path.home() / "Documents",
     "desktop": Path.home() / "Desktop",
     "dl": Path.home() / "Downloads",
-    "auto": [Path.home(), Path.home() / "Downloads", Path.home() / "Desktop", Path.home() / "Documents"],
+    "auto": [Path.home() / "Downloads", Path.home() / "Desktop", Path.home() / "Documents"],
 }
 
 
@@ -54,7 +54,7 @@ Examples:
     parser.add_argument("--docs", action="store_true", help="Search in ~/Documents")
     parser.add_argument("--desktop", action="store_true", help="Search in ~/Desktop")
     parser.add_argument("--dl", action="store_true", help="Search in ~/Downloads")
-    parser.add_argument("--auto", action="store_true", help="Search in ~, ~/Downloads, ~/Desktop, ~/Documents")
+    parser.add_argument("--auto", action="store_true", help="Search in ~/Downloads, ~/Desktop, ~/Documents")
 
     # Pattern options
     parser.add_argument("--scr", action="store_true", help="Match Screenshot* files")

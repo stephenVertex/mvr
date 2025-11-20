@@ -21,7 +21,7 @@ mvr [OPTIONS] [PATTERNS]
 - `--docs` - Search in ~/Documents
 - `--desktop` - Search in ~/Desktop
 - `--dl` - Search in ~/Downloads
-- `--auto` - Search in ~, ~/Downloads, ~/Desktop, and ~/Documents
+- `--auto` - Search in ~/Downloads, ~/Desktop, and ~/Documents
 
 ### Pattern Options
 
