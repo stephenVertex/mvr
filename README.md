@@ -34,6 +34,7 @@ mvr [OPTIONS] [PATTERNS]
 
 - `--window=N` - Time window in minutes (default: 5)
 - `--dr` - Dry run mode (list files without moving them)
+- `--undo` - Undo the last move operation and restore files to their original locations
 
 ## Examples
 
@@ -82,6 +83,13 @@ mvr --desktop --scr --images
 mvr *.dmg *.pkg --dl --window=15
 ```
 
+### Undo the last move operation
+```bash
+mvr --undo
+```
+
+This will restore all files from the last `mvr` operation back to their original locations using the `.mvr.latest` file.
+
 ## Requirements
 
 - Python 3.14+
@@ -92,3 +100,12 @@ mvr *.dmg *.pkg --dl --window=15
 `mvr` searches the specified directories for files matching the given patterns that were created within the specified time window. It then moves those files to your current working directory, automatically handling filename conflicts by appending numbers to duplicate names.
 
 The utility uses file creation time (birth time on macOS) to determine if a file falls within the time window.
+
+### Undo Functionality
+
+Each time `mvr` moves files, it creates a `.mvr.latest` file in the current directory containing:
+- The source path of each moved file
+- The destination path where it was moved to
+- A timestamp of when the move occurred
+
+You can use `mvr --undo` to restore all files from the last operation back to their original locations. The `.mvr.latest` file is automatically removed after a successful undo.

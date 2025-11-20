@@ -10,6 +10,7 @@ A utility to move recently created files from common directories to the current 
 """
 
 import argparse
+import json
 import shutil
 import sys
 from datetime import datetime, timedelta
@@ -66,6 +67,9 @@ Examples:
 
     # Dry run
     parser.add_argument("--dr", action="store_true", help="Dry run - list files without moving")
+
+    # Undo
+    parser.add_argument("--undo", action="store_true", help="Undo last move operation using .mvr.latest")
 
     # Custom patterns
     parser.add_argument("patterns", nargs="*", help="Custom file patterns (e.g., *.dmg)")
@@ -175,6 +179,9 @@ def move_files(files: List[Path], dest_dir: Path, dry_run: bool = False):
 
     print(f"Found {len(files)} file(s):")
 
+    # Track moves for undo functionality
+    moves = []
+
     for file_path in files:
         dest_path = dest_dir / file_path.name
 
@@ -193,8 +200,73 @@ def move_files(files: List[Path], dest_dir: Path, dry_run: bool = False):
             try:
                 shutil.move(str(file_path), str(dest_path))
                 print(f"  Moved: {file_path} -> {dest_path}")
+                moves.append({
+                    "source": str(file_path),
+                    "destination": str(dest_path),
+                    "timestamp": datetime.now().isoformat()
+                })
             except Exception as e:
                 print(f"  Error moving {file_path}: {e}", file=sys.stderr)
+
+    # Save move history to .mvr.latest
+    if not dry_run and moves:
+        history_file = dest_dir / ".mvr.latest"
+        try:
+            with open(history_file, 'w') as f:
+                json.dump(moves, f, indent=2)
+        except Exception as e:
+            print(f"Warning: Could not write .mvr.latest: {e}", file=sys.stderr)
+
+
+def undo_moves(dest_dir: Path):
+    """Undo the last move operation using .mvr.latest."""
+    history_file = dest_dir / ".mvr.latest"
+
+    if not history_file.exists():
+        print("No .mvr.latest file found. Nothing to undo.")
+        return
+
+    try:
+        with open(history_file, 'r') as f:
+            moves = json.load(f)
+    except Exception as e:
+        print(f"Error reading .mvr.latest: {e}", file=sys.stderr)
+        return
+
+    if not moves:
+        print("No moves to undo.")
+        return
+
+    print(f"Undoing {len(moves)} move(s):")
+
+    success_count = 0
+    for move in moves:
+        source = Path(move["source"])
+        destination = Path(move["destination"])
+
+        if not destination.exists():
+            print(f"  Warning: {destination} no longer exists, skipping")
+            continue
+
+        # Check if source parent directory exists
+        if not source.parent.exists():
+            print(f"  Warning: Source directory {source.parent} no longer exists, skipping")
+            continue
+
+        try:
+            shutil.move(str(destination), str(source))
+            print(f"  Restored: {destination} -> {source}")
+            success_count += 1
+        except Exception as e:
+            print(f"  Error restoring {destination}: {e}", file=sys.stderr)
+
+    # Remove .mvr.latest after successful undo
+    if success_count > 0:
+        try:
+            history_file.unlink()
+            print(f"\nSuccessfully undid {success_count} move(s)")
+        except Exception as e:
+            print(f"Warning: Could not remove .mvr.latest: {e}", file=sys.stderr)
 
 
 def main():
@@ -203,6 +275,11 @@ def main():
 
     # Get destination directory (current directory)
     dest_dir = Path.cwd()
+
+    # Handle undo operation
+    if args.undo:
+        undo_moves(dest_dir)
+        return
 
     # Determine search directories
     search_dirs = get_search_directories(args)
