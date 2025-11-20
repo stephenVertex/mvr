@@ -120,11 +120,12 @@ def get_patterns(args) -> List[str]:
 def is_within_window(file_path: Path, minutes: int) -> bool:
     """Check if file was created within the specified time window."""
     try:
-        # Use birth time (creation time) on macOS, or modification time as fallback
+        # Use birth time (creation time) on macOS
         file_time = datetime.fromtimestamp(file_path.stat().st_birthtime)
     except AttributeError:
-        # Fallback for systems without st_birthtime
-        file_time = datetime.fromtimestamp(file_path.stat().st_mtime)
+        # st_birthtime not available on this system
+        print(f"Warning: Cannot determine creation time for {file_path}, skipping", file=sys.stderr)
+        return False
 
     cutoff_time = datetime.now() - timedelta(minutes=minutes)
     return file_time >= cutoff_time
@@ -151,6 +152,10 @@ def find_matching_files(directories: List[Path], patterns: List[str], window: in
 
                 # Skip files not in the immediate directory (don't recurse)
                 if file_path.parent != directory:
+                    continue
+
+                # Skip dotfiles (files starting with .)
+                if file_path.name.startswith('.'):
                     continue
 
                 # Check if file is within time window
