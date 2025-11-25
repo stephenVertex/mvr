@@ -68,6 +68,9 @@ Examples:
     # Dry run
     parser.add_argument("--dr", action="store_true", help="Dry run - list files without moving")
 
+    # Time type
+    parser.add_argument("--ctime", action="store_true", help="Use change time instead of creation time (useful for downloaded files)")
+
     # Undo
     parser.add_argument("--undo", action="store_true", help="Undo last move operation using .mvr.latest")
 
@@ -121,11 +124,16 @@ def get_patterns(args) -> List[str]:
     return patterns
 
 
-def is_within_window(file_path: Path, minutes: int) -> bool:
+def is_within_window(file_path: Path, minutes: int, use_ctime: bool = False) -> bool:
     """Check if file was created within the specified time window."""
     try:
-        # Use birth time (creation time) on macOS
-        file_time = datetime.fromtimestamp(file_path.stat().st_birthtime)
+        stat_info = file_path.stat()
+        if use_ctime:
+            # Use change time (when file entered the directory)
+            file_time = datetime.fromtimestamp(stat_info.st_ctime)
+        else:
+            # Use birth time (creation time) on macOS
+            file_time = datetime.fromtimestamp(stat_info.st_birthtime)
     except AttributeError:
         # st_birthtime not available on this system
         print(f"Warning: Cannot determine creation time for {file_path}, skipping", file=sys.stderr)
@@ -135,7 +143,7 @@ def is_within_window(file_path: Path, minutes: int) -> bool:
     return file_time >= cutoff_time
 
 
-def find_matching_files(directories: List[Path], patterns: List[str], window: int, dest_dir: Path) -> List[Path]:
+def find_matching_files(directories: List[Path], patterns: List[str], window: int, dest_dir: Path, use_ctime: bool = False) -> List[Path]:
     """Find all files matching the criteria."""
     matching_files = []
 
@@ -163,7 +171,7 @@ def find_matching_files(directories: List[Path], patterns: List[str], window: in
                     continue
 
                 # Check if file is within time window
-                if is_within_window(file_path, window):
+                if is_within_window(file_path, window, use_ctime):
                     matching_files.append(file_path)
 
     # Remove duplicates and sort
@@ -288,7 +296,7 @@ def main():
     patterns = get_patterns(args)
 
     # Find matching files
-    matching_files = find_matching_files(search_dirs, patterns, args.window, dest_dir)
+    matching_files = find_matching_files(search_dirs, patterns, args.window, dest_dir, args.ctime)
 
     # Move files
     move_files(matching_files, dest_dir, args.dr)
