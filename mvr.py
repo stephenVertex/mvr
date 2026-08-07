@@ -33,6 +33,36 @@ DIRECTORIES = {
     "auto": [Path.home() / "Downloads", Path.home() / "Desktop", Path.home() / "Documents"],
 }
 
+PRIME_GUIDE = """\
+mvr — move recently created files into the current directory.
+
+USAGE
+  mvr prime                         Show this agent-facing guide
+  mvr [PATTERN ...] [OPTIONS]       Move matching recent files here
+  mvr --undo                        Undo the last move recorded here
+
+SOURCES
+  --dl | --desktop | --docs         Search one or more common directories
+  --auto                            Search Downloads, Desktop, and Documents
+  (no source option)                Search the current directory
+
+MATCHING AND SAFETY
+  --scr | --images | --videos       Use built-in glob groups
+  PATTERN                           Add a shell-style glob (quote it)
+  --window MINUTES                  Recent-file window (default: 5)
+  --ctime                           Use change time instead of creation time
+  --dr                              Dry run; always use before uncertain moves
+
+CONVENTIONS / GOTCHAS
+  - The destination is always the current working directory.
+  - Searches are non-recursive, skip dotfiles, and default to all files.
+  - Quote globs (for example, '*.pdf') so the shell does not expand them.
+  - Existing destination names gain _1, _2, etc.; files are not overwritten.
+  - A successful move writes .mvr.latest here; --undo consumes that file.
+  - Creation-time matching requires st_birthtime (normally macOS); use
+    --ctime where birth time is unavailable or inappropriate.
+"""
+
 
 def parse_arguments():
     """Parse command line arguments."""
@@ -279,6 +309,10 @@ def undo_moves(dest_dir: Path):
 
 def main():
     """Main entry point."""
+    if sys.argv[1:] == ["prime"]:
+        print(PRIME_GUIDE, end="")
+        return
+
     args = parse_arguments()
 
     # Get destination directory (current directory)
